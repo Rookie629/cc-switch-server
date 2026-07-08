@@ -1,0 +1,57 @@
+[Unit]
+Description=cc-switch-server - Claude Code AI Provider Manager
+Documentation=https://github.com/yourusername/cc-switch
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# User/Group — change to the user running Claude Code
+# User=youruser
+# Group=youruser
+
+# Working directory (web/ files are served from here)
+WorkingDirectory=/opt/cc-switch-server
+
+# Bind to all interfaces for server use; use 127.0.0.1 if behind nginx
+ExecStart=/opt/cc-switch-server/cc-switch serve \
+    --host 0.0.0.0 \
+    --port 9876 \
+    --data-dir /var/lib/cc-switch-server
+
+# Graceful shutdown
+ExecStop=/bin/kill -TERM $MAIN_PID
+KillSignal=SIGTERM
+KillMode=mixed
+TimeoutStopSec=10
+
+# Restart policy
+Restart=on-failure
+RestartSec=5
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/cc-switch-server
+ReadWritePaths=/home/YOUR_USER/.claude
+ReadOnlyPaths=/opt/cc-switch-server
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cc-switch-server
+
+[Install]
+WantedBy=multi-user.target

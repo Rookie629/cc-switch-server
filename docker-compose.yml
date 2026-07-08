@@ -1,0 +1,41 @@
+# Docker Compose — production deployment
+# Usage:
+#   docker compose up -d                    # start
+#   docker compose down                     # stop
+#   docker compose logs -f                  # view logs
+#   docker compose exec cc-switch status    # CLI commands
+
+version: "3.9"
+
+services:
+  cc-switch:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cc-switch-server:latest
+    container_name: cc-switch-server
+    restart: unless-stopped
+    ports:
+      - "9876:9876"
+    volumes:
+      - cc-switch-data:/var/lib/cc-switch-server
+      # Mount Claude config for direct settings.json management
+      - ${HOME}/.claude:/home/ccswitch/.claude:rw
+    environment:
+      - TZ=Asia/Shanghai
+      - GIN_MODE=release
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9876/api/proxy/status"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  cc-switch-data:
+    driver: local

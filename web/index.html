@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cc-switch-server</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>&#9889; cc-switch-server</h1>
+    <div id="proxy-badge" class="badge">代理: --</div>
+  </header>
+
+  <main>
+    <!-- Provider List View -->
+    <section id="view-list">
+      <div class="toolbar">
+        <h2>Providers</h2>
+        <button id="btn-add" class="btn-primary">+ 添加</button>
+      </div>
+      <div id="provider-list"></div>
+    </section>
+
+    <!-- Add/Edit Form View -->
+    <section id="view-form" style="display:none">
+      <h2 id="form-title">添加 Provider</h2>
+      <form id="provider-form">
+        <input type="hidden" id="form-editing" value="">
+
+        <label>名称</label>
+        <input type="text" id="form-name" placeholder="my-provider" required>
+
+        <label>预设</label>
+        <select id="form-preset">
+          <option value="">-- 手动输入 --</option>
+        </select>
+
+        <label>类型</label>
+        <select id="form-type">
+          <option value="openai_compatible">openai_compatible</option>
+          <option value="anthropic">anthropic</option>
+          <option value="openai">openai</option>
+        </select>
+
+        <label>API Key</label>
+        <div class="key-field">
+          <input type="password" id="form-key" placeholder="sk-..." required>
+          <button type="button" id="btn-toggle-key" class="btn-sm">&#128065;</button>
+        </div>
+
+        <label>Base URL</label>
+        <input type="text" id="form-url" placeholder="https://api.deepseek.com" required>
+
+        <label>Models (逗号分隔)</label>
+        <input type="text" id="form-models" placeholder="deepseek-chat, deepseek-reasoner">
+
+        <label>默认 Model</label>
+        <input type="text" id="form-default-model" placeholder="deepseek-chat">
+
+        <div class="form-actions">
+          <button type="button" id="btn-test" class="btn-secondary">测试连接</button>
+          <button type="submit" class="btn-primary">保存</button>
+          <button type="button" id="btn-cancel" class="btn-secondary">取消</button>
+        </div>
+      </form>
+      <div id="test-result"></div>
+    </section>
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

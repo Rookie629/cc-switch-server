@@ -1,0 +1,21 @@
+# Git
+.git/
+.gitignore
+
+# Build artifacts
+cc-switch
+deploy/
+*.tmp
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
