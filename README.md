@@ -182,6 +182,3 @@ Claude Code                cc-switch proxy              Upstream API
 - HTTPS via Nginx reverse proxy + Let's Encrypt (see `deploy/nginx.conf`)
 - Firewall-limit the web panel port from public access
 
-## License
-
-MIT
