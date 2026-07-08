@@ -5,9 +5,9 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/Rookie629/cc-switch/internal/preset"
-	s "github.com/Rookie629/cc-switch/internal/service"
-	"github.com/Rookie629/cc-switch/internal/store"
+	"github.com/Rookie629/cc-switch-server/internal/preset"
+	s "github.com/Rookie629/cc-switch-server/internal/service"
+	"github.com/Rookie629/cc-switch-server/internal/store"
 )
 
 // NewRouter creates and configures the gin router with all API endpoints.

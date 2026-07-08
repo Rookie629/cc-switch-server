@@ -1,4 +1,4 @@
-module github.com/Rookie629/cc-switch
+module github.com/Rookie629/cc-switch-server
 
 go 1.18
 

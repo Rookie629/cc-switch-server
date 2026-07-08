@@ -1,6 +1,6 @@
 package preset
 
-import "github.com/Rookie629/cc-switch/internal/store"
+import "github.com/Rookie629/cc-switch-server/internal/store"
 
 // Preset defines a pre-configured provider template.
 type Preset struct {

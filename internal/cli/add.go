@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/Rookie629/cc-switch/internal/preset"
+	"github.com/Rookie629/cc-switch-server/internal/preset"
 )
 
 func addCmd() *cobra.Command {

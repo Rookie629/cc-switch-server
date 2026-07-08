@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
-	"github.com/Rookie629/cc-switch/internal/api"
+	"github.com/Rookie629/cc-switch-server/internal/api"
 )
 
 func serveCmd() *cobra.Command {

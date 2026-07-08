@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/Rookie629/cc-switch/internal/store"
+	"github.com/Rookie629/cc-switch-server/internal/store"
 )
 
 // ProviderService handles all business logic for provider management.

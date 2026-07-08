@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Rookie629/cc-switch/internal/cli"
+	"github.com/Rookie629/cc-switch-server/internal/cli"
 )
 
 // Build-time variables injected via -ldflags.

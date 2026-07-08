@@ -7,7 +7,7 @@ import (
 	"syscall"
 
 	"github.com/spf13/cobra"
-	"github.com/Rookie629/cc-switch/internal/service"
+	"github.com/Rookie629/cc-switch-server/internal/service"
 )
 
 func proxyDaemonCmd() *cobra.Command {
