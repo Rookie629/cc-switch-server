@@ -30,6 +30,11 @@ CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o cc-switch .
 echo "  Built: $(du -h cc-switch | cut -f1)"
 
 echo ""
+echo "=== Stop remote proxy ==="
+${SSH_CMD} ${SSH_OPTS} "${SERVER}" "pkill -9 -f 'cc-switch proxy-daemon' 2>/dev/null; rm -f ~/.cc-switch-server/proxy.pid; echo '  proxy stopped.'" || true
+sleep 1
+
+echo ""
 echo "=== Upload to ${SERVER}:${PORT} ==="
 ${SCP_CMD} ${SCP_OPTS} cc-switch "deploy/server-update.sh" "web/"* "${SERVER}:${SERVER_DIR}/"
 
