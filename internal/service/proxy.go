@@ -458,10 +458,11 @@ func (ps *ProxyService) handleNonStreamResponse(w http.ResponseWriter, body []by
 			args = make(map[string]interface{})
 		}
 		content = append(content, AnthropicContentBlock{
-			Type:  "tool_use",
-			ID:    tc.ID,
-			Name:  tc.Function.Name,
-			Input: args,
+			Type:   "tool_use",
+			ID:     tc.ID,
+			Name:   tc.Function.Name,
+			Input:  args,
+			Caller: map[string]string{"type": "direct"},
 		})
 		stopReason = "tool_use"
 	}
@@ -873,17 +874,20 @@ type AnthropicContentBlock struct {
 	ContentRaw json.RawMessage        `json:"content,omitempty"`
 	ID         string                 `json:"id,omitempty"`
 	ToolUseID  string                 `json:"tool_use_id,omitempty"`
+	Caller     map[string]string      `json:"caller,omitempty"`
+	IsError    *bool                  `json:"is_error,omitempty"`
 }
 
 // AnthropicResponse is the translated response sent back to Claude Code.
 type AnthropicResponse struct {
-	ID         string                 `json:"id"`
-	Type       string                 `json:"type"`
-	Role       string                 `json:"role"`
-	Model      string                 `json:"model"`
-	Content    []AnthropicContentBlock `json:"content"`
-	StopReason string                 `json:"stop_reason"`
-	Usage      AnthropicUsage         `json:"usage"`
+	ID          string                 `json:"id"`
+	Type        string                 `json:"type"`
+	Role        string                 `json:"role"`
+	Model       string                 `json:"model"`
+	Content     []AnthropicContentBlock `json:"content"`
+	StopReason  string                 `json:"stop_reason"`
+	StopDetails interface{}            `json:"stop_details"`
+	Usage       AnthropicUsage         `json:"usage"`
 }
 
 // AnthropicUsage contains token counts.
