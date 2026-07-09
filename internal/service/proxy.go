@@ -434,9 +434,9 @@ func (ps *ProxyService) handleNonStreamResponse(w http.ResponseWriter, body []by
 	msg := choice.Message
 
 	// Build Anthropic content blocks
-	var content []AnthropicContentBlock
+	content := make([]AnthropicContentBlock, 0)
 
-	// Text content
+	// Text content (may be "" when response is tool_calls only)
 	if msg.Content != "" {
 		content = append(content, AnthropicContentBlock{
 			Type: "text",
@@ -447,10 +447,12 @@ func (ps *ProxyService) handleNonStreamResponse(w http.ResponseWriter, body []by
 	// Tool calls → tool_use blocks
 	stopReason := "end_turn"
 	for _, tc := range msg.ToolCalls {
-		// Parse arguments JSON string to object
 		var args map[string]interface{}
 		if tc.Function.Arguments != "" {
-			json.Unmarshal([]byte(tc.Function.Arguments), &args)
+			if err := json.Unmarshal([]byte(tc.Function.Arguments), &args); err != nil {
+				log.Printf("[proxy] failed to parse tool arguments: %v (raw: %s)", err, tc.Function.Arguments[:min(len(tc.Function.Arguments), 200)])
+				args = make(map[string]interface{})
+			}
 		}
 		if args == nil {
 			args = make(map[string]interface{})
@@ -472,16 +474,16 @@ func (ps *ProxyService) handleNonStreamResponse(w http.ResponseWriter, body []by
 		stopReason = "max_tokens"
 	}
 
-	anthropicResp := map[string]interface{}{
-		"id":      openaiResp.ID,
-		"type":    "message",
-		"role":    "assistant",
-		"model":   openaiResp.Model,
-		"content": content,
-		"stop_reason": stopReason,
-		"usage": map[string]int{
-			"input_tokens":  openaiResp.Usage.PromptTokens,
-			"output_tokens": openaiResp.Usage.CompletionTokens,
+	anthropicResp := AnthropicResponse{
+		ID:         openaiResp.ID,
+		Type:       "message",
+		Role:       "assistant",
+		Model:      openaiResp.Model,
+		Content:    content,
+		StopReason: stopReason,
+		Usage: AnthropicUsage{
+			InputTokens:  openaiResp.Usage.PromptTokens,
+			OutputTokens: openaiResp.Usage.CompletionTokens,
 		},
 	}
 
@@ -628,18 +630,21 @@ func extractTextContent(raw json.RawMessage) string {
 		case "text":
 			parts = append(parts, b.Text)
 		case "tool_use":
-			if b.Name != "" {
-				parts = append(parts, fmt.Sprintf("[Tool: %s → %v]", b.Name, b.Input))
-			}
+			// Serialize as proper JSON so the model can understand it
+			argsJSON, _ := json.Marshal(b.Input)
+			parts = append(parts, fmt.Sprintf("[ToolCall id=%s name=%s args=%s]", b.ID, b.Name, string(argsJSON)))
 		case "tool_result":
-			// tool_result content can itself be string or array
 			toolText := extractTextContent(b.ContentRaw)
 			if toolText != "" {
-				parts = append(parts, fmt.Sprintf("[Tool Result: %s]", toolText))
+				tid := b.ToolUseID
+				if tid == "" {
+					tid = b.ID // fallback
+				}
+				parts = append(parts, fmt.Sprintf("[ToolResult id=%s result=%s]", tid, toolText))
 			}
 		}
 	}
-	return strings.Join(parts, " ")
+	return strings.Join(parts, "\n")
 }
 
 // forwardRequest sends the OpenAI-format request to the upstream provider.
@@ -867,16 +872,18 @@ type AnthropicContentBlock struct {
 	Input      map[string]interface{} `json:"input"`
 	ContentRaw json.RawMessage        `json:"content,omitempty"`
 	ID         string                 `json:"id,omitempty"`
+	ToolUseID  string                 `json:"tool_use_id,omitempty"`
 }
 
 // AnthropicResponse is the translated response sent back to Claude Code.
 type AnthropicResponse struct {
-	ID      string                  `json:"id"`
-	Type    string                  `json:"type"`
-	Role    string                  `json:"role"`
-	Model   string                  `json:"model"`
-	Content []AnthropicContentBlock `json:"content"`
-	Usage   AnthropicUsage          `json:"usage"`
+	ID         string                 `json:"id"`
+	Type       string                 `json:"type"`
+	Role       string                 `json:"role"`
+	Model      string                 `json:"model"`
+	Content    []AnthropicContentBlock `json:"content"`
+	StopReason string                 `json:"stop_reason"`
+	Usage      AnthropicUsage         `json:"usage"`
 }
 
 // AnthropicUsage contains token counts.
