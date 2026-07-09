@@ -258,7 +258,7 @@ func (ps *ProxyService) handleStreamResponse(w http.ResponseWriter, body []byte,
 		model         string
 		started       bool
 		textBlockOpen bool
-		currentIndex  int
+		currentIndex  int = -1 // start at -1 so first block gets index 0
 		toolStates    = make(map[int]*toolCallState)
 	)
 
@@ -359,10 +359,11 @@ func (ps *ProxyService) handleStreamResponse(w http.ResponseWriter, body []byte,
 				fmt.Fprintf(w, "event: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":%d}\n\n", currentIndex)
 				textBlockOpen = false
 			}
-			// Close any open tool blocks
+			// Close any open tool blocks and mark them closed
 			for _, ts := range toolStates {
 				if ts.open {
 					fmt.Fprintf(w, "event: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":%d}\n\n", ts.anthIndex)
+					ts.open = false // prevent double-close in cleanup below
 				}
 			}
 
@@ -863,7 +864,7 @@ type AnthropicContentBlock struct {
 	Type       string                 `json:"type"`
 	Text       string                 `json:"text,omitempty"`
 	Name       string                 `json:"name,omitempty"`
-	Input      map[string]interface{} `json:"input,omitempty"`
+	Input      map[string]interface{} `json:"input"`
 	ContentRaw json.RawMessage        `json:"content,omitempty"`
 	ID         string                 `json:"id,omitempty"`
 }
