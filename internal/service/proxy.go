@@ -560,6 +560,9 @@ func (ps *ProxyService) resolveModel(anthropicModel string) string {
 }
 
 // translateMessages converts Anthropic messages to OpenAI format.
+// Preserves tool_use and tool_result as structured content (not flattened to text).
+// Anthropic assistant messages with tool_use → OpenAI assistant with tool_calls[].
+// Anthropic user messages with tool_result → OpenAI tool-role messages.
 func (ps *ProxyService) translateMessages(ar *AnthropicRequest) []OpenAIMessage {
 	var messages []OpenAIMessage
 
@@ -575,11 +578,90 @@ func (ps *ProxyService) translateMessages(ar *AnthropicRequest) []OpenAIMessage 
 	}
 
 	for _, msg := range ar.Messages {
-		content := extractTextContent(msg.Content)
-		messages = append(messages, OpenAIMessage{
-			Role:    msg.Role,
-			Content: content,
-		})
+		parsed := ps.parseContentBlocks(msg.Content, msg.Role)
+		messages = append(messages, parsed...)
+	}
+
+	return messages
+}
+
+// parseContentBlocks splits an Anthropic message content into one or more OpenAI messages.
+// Assistant messages with tool_use blocks get their tool calls preserved as structured JSON.
+// User messages with tool_result blocks become OpenAI tool-role messages.
+func (ps *ProxyService) parseContentBlocks(raw json.RawMessage, role string) []OpenAIMessage {
+	var messages []OpenAIMessage
+
+	// Try plain string first
+	var s string
+	if err := json.Unmarshal(raw, &s); err == nil {
+		return []OpenAIMessage{{Role: role, Content: s}}
+	}
+
+	// Try array of content blocks
+	var blocks []AnthropicContentBlock
+	if err := json.Unmarshal(raw, &blocks); err != nil {
+		return []OpenAIMessage{{Role: role, Content: ""}}
+	}
+
+	if role == "assistant" {
+		// Separate text parts and tool_use blocks
+		var textParts []string
+		var toolCalls []OpenAIToolCall
+
+		for _, b := range blocks {
+			switch b.Type {
+			case "text":
+				if b.Text != "" {
+					textParts = append(textParts, b.Text)
+				}
+			case "tool_use":
+				argsJSON, _ := json.Marshal(b.Input)
+				toolCalls = append(toolCalls, OpenAIToolCall{
+					ID:   b.ID,
+					Type: "function",
+					Function: OpenAIToolFunction{
+						Name:      b.Name,
+						Arguments: string(argsJSON),
+					},
+				})
+			}
+		}
+
+		if len(toolCalls) > 0 || len(textParts) > 0 {
+			messages = append(messages, OpenAIMessage{
+				Role:      "assistant",
+				Content:   strings.Join(textParts, "\n"),
+				ToolCalls: toolCalls,
+			})
+		}
+	} else {
+		// User messages: text blocks → user message, tool_result blocks → tool messages
+		var textParts []string
+		for _, b := range blocks {
+			switch b.Type {
+			case "text":
+				if b.Text != "" {
+					textParts = append(textParts, b.Text)
+				}
+			case "tool_result":
+				resultText := extractTextContent(b.ContentRaw)
+				tid := b.ToolUseID
+				if tid == "" {
+					tid = b.ID
+				}
+				messages = append(messages, OpenAIMessage{
+					Role:       "tool",
+					Content:    resultText,
+					ToolCallID: tid,
+				})
+			}
+		}
+		if len(textParts) > 0 {
+			messages = append(messages, OpenAIMessage{
+				Role:    "user",
+				Content: strings.Join(textParts, "\n"),
+			})
+		}
 	}
 
 	return messages
@@ -917,8 +999,10 @@ type OpenAITool struct {
 
 // OpenAIMessage is a single message in the conversation.
 type OpenAIMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role       string           `json:"role"`
+	Content    string           `json:"content,omitempty"`
+	ToolCalls  []OpenAIToolCall `json:"tool_calls,omitempty"`
+	ToolCallID string           `json:"tool_call_id,omitempty"`
 }
 
 // OpenAIChatResponse is the upstream provider's response.
