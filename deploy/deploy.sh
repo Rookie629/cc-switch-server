@@ -12,8 +12,17 @@ SERVER_DIR="/opt/cc-switch"
 
 PROVIDER="${1:-deepseek_for_server}"
 
-SSH_OPTS="-p ${PORT}"
-SCP_OPTS="-P ${PORT}"
+SSH_OPTS="-p ${PORT} -o StrictHostKeyChecking=no"
+SCP_OPTS="-P ${PORT} -o StrictHostKeyChecking=no"
+
+# Auto-detect sshpass if installed, fall back to interactive
+if command -v sshpass &>/dev/null && [ -n "${SSHPASS:-}" ]; then
+    SCP_CMD="sshpass -e scp"
+    SSH_CMD="sshpass -e ssh"
+else
+    SCP_CMD="scp"
+    SSH_CMD="ssh"
+fi
 
 echo "=== Build cc-switch ==="
 cd "$(dirname "$0")/.."
@@ -22,11 +31,11 @@ echo "  Built: $(du -h cc-switch | cut -f1)"
 
 echo ""
 echo "=== Upload to ${SERVER}:${PORT} ==="
-scp ${SCP_OPTS} cc-switch "deploy/server-update.sh" "web/"* "${SERVER}:${SERVER_DIR}/"
+${SCP_CMD} ${SCP_OPTS} cc-switch "deploy/server-update.sh" "web/"* "${SERVER}:${SERVER_DIR}/"
 
 echo ""
 echo "=== Run server update ==="
-ssh ${SSH_OPTS} "${SERVER}" "cd ${SERVER_DIR} && bash server-update.sh ${PROVIDER}"
+${SSH_CMD} ${SSH_OPTS} "${SERVER}" "cd ${SERVER_DIR} && bash server-update.sh ${PROVIDER}"
 
 echo ""
 echo "=== Cleanup ==="
